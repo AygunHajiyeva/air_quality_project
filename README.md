@@ -1,13 +1,9 @@
 # Air Quality Monitor
 
-IoT Home Air Quality Monitor — desktop application for managing air quality sensor devices.
-
-## Quick Start
+IoT desktop app for managing air quality sensors.
 
 ```bash
 cd air_quality_project
-.venv\Scripts\python -m uvicorn api:app --host 127.0.0.1 --port 8000    # Terminal 1: API
-.venv\Scripts\python main.py                                              # Terminal 2: Desktop UI
+.venv\Scripts\python -m uvicorn api:app --port 8000   # API
+.venv\Scripts\python main.py                           # Desktop UI
 ```
-
-Full documentation: [air_quality_project/README.md](air_quality_project/README.md)
