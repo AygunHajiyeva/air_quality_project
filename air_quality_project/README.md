@@ -1,53 +1,39 @@
 # Air Quality Monitor
 
-This is an IoT Home Air Quality Monitor project.
+IoT Home Air Quality Monitor — a desktop application for managing air quality sensor devices placed in different rooms of a home.
 
-The project uses:
+## Tech Stack
 
-- FastAPI for the backend REST API
-- SQLite for local data storage
-- Flet for the desktop user interface
-- Python requests for frontend-to-backend API calls
+| Layer | Technology |
+|-------|-----------|
+| Backend | FastAPI (Python) |
+| Frontend | Flet (Python desktop UI) |
+| Database | SQLite |
+| API Client | Python `requests` |
 
-## Current Features
-
-- SQLite database with rooms and air quality devices
-- Seed script with sample room and device data
-- FastAPI endpoint to list devices
-- FastAPI endpoint to add a new device
-- FastAPI endpoints to update and delete devices
-- Flet desktop UI with a device records table
-- Add New form with basic validation
-- Search field for filtering device records
-- Edit dialog for updating existing device records
-- Delete confirmation dialog for removing device records
-- NavigationBar for switching between Records and Add New views
-- Success and error snackbar messages
-- Data persistence using SQLite
-
-## Project Files
+## Project Structure
 
 ```text
 air_quality_project/
-+-- api.py              # FastAPI backend
-+-- main.py             # Flet desktop frontend
-+-- models.py           # Pydantic request models
-+-- config.py           # Shared configuration
-+-- seed.py             # Recreates and fills the SQLite database
-+-- air_quality.db      # SQLite database
-+-- README.md
+├── api.py           # FastAPI REST API server
+├── main.py          # Flet desktop GUI frontend
+├── models.py        # Pydantic request/response models
+├── config.py        # Shared configuration constants
+├── seed.py          # Database seeder (sample data)
+├── air_quality.db   # SQLite database (auto-created)
+└── README.md
 ```
 
 ## API Endpoints
 
 | Method | Endpoint | Description |
-| --- | --- | --- |
-| GET | `/devices` | Returns the list of devices with room names |
-| POST | `/devices` | Adds a new device |
-| PUT | `/devices/{id}` | Updates an existing device |
-| DELETE | `/devices/{id}` | Deletes an existing device |
+|--------|----------|-------------|
+| GET | `/devices` | List all devices (supports `?search=` filter) |
+| POST | `/devices` | Add a new device |
+| PUT | `/devices/{id}` | Update an existing device |
+| DELETE | `/devices/{id}` | Delete a device |
 
-Example POST body:
+### Example POST body
 
 ```json
 {
@@ -57,3 +43,57 @@ Example POST body:
   "room_id": 1
 }
 ```
+
+## Current Stage — Lab #10 (Complete)
+
+Full CRUD cycle implemented: POST (create), GET (read), PUT (update), DELETE.
+
+### Features
+- **DataTable** displaying all devices with ID, Device ID, Model, Status, Room, and Actions columns
+- **Add New** form with client-side validation (no empty fields, valid room ID)
+- **Edit** button per row — opens a modal `AlertDialog` pre-filled with device data
+- **Delete** button per row — opens a confirmation dialog before deleting
+- **Search** field — live server-side filtering across device ID, model, status, and room name
+- **SnackBar** notifications — green for success, red for errors
+- **NavigationBar** — switch between Records and Add New views
+- **SQLite persistence** — data survives application restart
+
+## How to Run
+
+### 1. Start the API server
+
+```bash
+cd air_quality_project
+.venv\Scripts\python -m uvicorn api:app --host 127.0.0.1 --port 8000
+```
+
+API will be available at `http://127.0.0.1:8000/docs` (Swagger UI).
+
+### 2. Start the Flet desktop app
+
+In a separate terminal:
+
+```bash
+cd air_quality_project
+.venv\Scripts\python main.py
+```
+
+A native desktop window will open with the device records table.
+
+### 3. (Optional) Seed the database
+
+```bash
+cd air_quality_project
+.venv\Scripts\python seed.py
+```
+
+This inserts 5 rooms and 10 sample devices.
+
+## Project Plan
+
+The full project plan (4-stage build) is available in `project items/PLAN.pdf`:
+
+- **Stage 1** (Lab #9): DataTable + POST form + NavigationBar ✅
+- **Stage 2** (Lab #10): Edit/Delete dialogs + Search filter ✅ *(current)*
+- **Stage 3** (Activity #5): Pagination + Column sorting
+- **Stage 4** (Lab #19 / Docker): Containerization
