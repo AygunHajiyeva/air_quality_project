@@ -88,7 +88,26 @@ def main(page: ft.Page):
 
     def build_bar_chart(points: list) -> ft.Control:
         if not points:
-            return ft.Text("No readings in the last 24 hours", color=ft.Colors.ON_SURFACE_VARIANT)
+            return ft.Container(
+                content=ft.Column(
+                    [
+                        ft.Icon(ft.Icons.BAR_CHART, size=40, color=ft.Colors.GREY_600),
+                        ft.Text("No readings yet", size=14, color=ft.Colors.GREY_500),
+                        ft.FilledTonalButton(
+                            "Add reading",
+                            icon=ft.Icons.ADD_CHART,
+                            on_click=open_reading_sheet,
+                            style=ft.ButtonStyle(text_style=ft.TextStyle(size=12)),
+                        ),
+                    ],
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    spacing=8,
+                ),
+                bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
+                border_radius=12,
+                padding=30,
+                width=400,
+            )
         subset = points[-40:]
         max_pm = max(p["pm25"] for p in subset) or 1
         bars = [
@@ -160,6 +179,8 @@ def main(page: ft.Page):
         show_snack(f"Welcome, {data['username']} ({data['role']})")
         show_main_shell()
 
+    login_pass.on_submit = do_login
+
     def show_login_view() -> None:
         page.controls.clear()
         page.appbar = None
@@ -172,7 +193,12 @@ def main(page: ft.Page):
         content=ft.Container(
             content=ft.Column(
                 [
-                    ft.Icon(ft.Icons.AIR, size=52, color=ft.Colors.BLUE_300),
+                    ft.Container(
+                        width=56, height=56,
+                        border_radius=28,
+                        bgcolor=ft.Colors.BLUE_900,
+                        content=ft.Icon(ft.Icons.AIR, size=32, color=ft.Colors.BLUE_200),
+                    ),
                     ft.Text("Air Quality Monitor", size=26, weight=ft.FontWeight.BOLD),
                     ft.Text(
                         "Sign in to continue",
@@ -183,12 +209,18 @@ def main(page: ft.Page):
                     login_user,
                     ft.Container(height=16),
                     login_pass,
-                    ft.Container(height=28),
+                    ft.Container(height=16),
                     ft.FilledButton(
                         "Sign In",
                         icon=ft.Icons.LOGIN,
                         on_click=do_login,
                         width=200,
+                    ),
+                    ft.Container(height=4),
+                    ft.TextButton(
+                        "Cannot connect?",
+                        on_click=lambda e: show_snack(API_START_HINT, success=False),
+                        style=ft.ButtonStyle(color=ft.Colors.GREY_500, text_style=ft.TextStyle(size=11)),
                     ),
                 ],
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -235,6 +267,28 @@ def main(page: ft.Page):
             card_pm25.value = str(summary["avg_pm25"])
             card_co2.value = str(summary["avg_co2"])
             card_alerts.value = str(summary["alert_count"])
+
+            empty = (
+                summary["active_devices"] == 0
+                and summary["avg_pm25"] == 0
+                and summary["avg_co2"] == 0
+            )
+            if empty:
+                dash_empty_hint.content = ft.Container(
+                    content=ft.Row(
+                        [
+                            ft.Icon(ft.Icons.INFO_OUTLINE, size=16, color=ft.Colors.GREY_400),
+                            ft.Text(
+                                "No data yet — run seed.py to populate the database",
+                                size=12, color=ft.Colors.GREY_400,
+                            ),
+                        ],
+                        spacing=8, alignment=ft.MainAxisAlignment.CENTER,
+                    ),
+                    bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
+                    border_radius=8, padding=10,
+                )
+            dash_empty_hint.visible = empty
 
             c = requests.get(
                 f"{API_BASE_URL}/dashboard/chart", headers=headers(), timeout=5
@@ -287,6 +341,7 @@ def main(page: ft.Page):
             expand=True,
         )
 
+    dash_empty_hint = ft.Container(visible=False)
     dashboard_left = ft.Column(
         [
             ft.Row(
@@ -298,6 +353,7 @@ def main(page: ft.Page):
                 ],
                 spacing=10,
             ),
+            dash_empty_hint,
             ft.Container(height=12),
             chart_area,
             ft.Container(height=18),
@@ -465,7 +521,34 @@ def main(page: ft.Page):
             devices_table.rows.extend(rows)
             start = offset + 1 if total else 0
             end = min(offset + len(items), total)
-            counter_text.value = f"Showing {start}–{end} of {total} devices"
+            if total == 0:
+                counter_text.value = ""
+                if not items:
+                    devices_table.rows.clear()
+                    devices_table.rows.append(
+                        ft.DataRow(
+                            cells=[
+                                ft.DataCell(ft.Text("")),
+                                ft.DataCell(
+                                    ft.Column(
+                                        [
+                                            ft.Icon(ft.Icons.DEVICES, size=32, color=ft.Colors.GREY_600),
+                                            ft.Text("No devices yet", size=14, color=ft.Colors.GREY_500),
+                                            ft.Text("Add one using the form below", size=11, color=ft.Colors.GREY_600),
+                                        ],
+                                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                                        spacing=4,
+                                    )
+                                ),
+                                ft.DataCell(ft.Text("")),
+                                ft.DataCell(ft.Text("")),
+                                ft.DataCell(ft.Text("")),
+                                ft.DataCell(ft.Text("")),
+                            ]
+                        )
+                    )
+            else:
+                counter_text.value = f"Showing {start}–{end} of {total} devices"
             rebuild_pager()
         except Exception as ex:  # noqa: BLE001
             show_snack(f"Devices error: {ex}", success=False)
@@ -743,8 +826,39 @@ def main(page: ft.Page):
                         ]
                     )
                 )
-            alerts_table.rows.clear()
-            alerts_table.rows.extend(rows)
+            if not items:
+                alerts_table.rows.clear()
+                alerts_table.rows.append(
+                    ft.DataRow(
+                        cells=[
+                            ft.DataCell(ft.Text("")),
+                            ft.DataCell(
+                                ft.Column(
+                                    [
+                                        ft.Container(
+                                            width=40, height=40,
+                                            border_radius=20,
+                                            bgcolor=ft.Colors.GREEN_900,
+                                            content=ft.Icon(ft.Icons.CHECK, size=24, color=ft.Colors.GREEN_200),
+                                        ),
+                                        ft.Text("All clear", size=14, color=ft.Colors.GREEN_300),
+                                        ft.Text("No alerts to show", size=11, color=ft.Colors.GREY_500),
+                                    ],
+                                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                                    spacing=4,
+                                )
+                            ),
+                            ft.DataCell(ft.Text("")),
+                            ft.DataCell(ft.Text("")),
+                            ft.DataCell(ft.Text("")),
+                            ft.DataCell(ft.Text("")),
+                            ft.DataCell(ft.Text("")),
+                        ]
+                    )
+                )
+            else:
+                alerts_table.rows.clear()
+                alerts_table.rows.extend(rows)
         except Exception as ex:  # noqa: BLE001
             show_snack(f"Alerts error: {ex}", success=False)
         page.update()
